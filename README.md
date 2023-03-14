@@ -1,6 +1,6 @@
 # yunzaichat
 
-使用chatgpt官方api, 实现机器人对话功能.
+这是原神机器人yunzai-bot的一款插件, 使用chatgpt官方api, 实现机器人对话功能.
 
 ## TODO
 
