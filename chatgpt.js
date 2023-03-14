@@ -22,7 +22,7 @@ export class ChatGPT extends plugin {
       name: 'GPT聊天',
       dsc: '使用openai接口的聊天机器人',
       event: 'message',
-      priority: 39999,
+      priority: 69999,
       rule: [
         {
           /** 暂时使用正则匹配 */
@@ -32,6 +32,9 @@ export class ChatGPT extends plugin {
         }, {
           reg: '^#结束服务(.*)+',
           fnc: 'finishService'
+        }, {
+          reg: '^#删除上一段对话',
+          fnc: 'doDelChat'
         }, {
           reg: '.*',
           fnc: 'doChat'
@@ -70,11 +73,6 @@ export class ChatGPT extends plugin {
     let recall = false;
     let text = '';
     let chatRole = {};
-    if (this.e.message_type !== 'group') {
-      console.log(this.e.message_type);
-      this.reply('抱歉, 暂时只支持群聊服务~~');
-      return;
-    }
 
     if (this.e.message) {
       for (let val of this.e.message) {
@@ -112,22 +110,22 @@ export class ChatGPT extends plugin {
     }
   }
 
+  async doDelChat () {
+    let chatRoleName = await redis.get(String(this.e.group_id) + '人格');
+    let chatRoleString = await redis.get(chatRoleName);
+    let chatRole = JSON.parse(chatRoleString);
+    let res = await fetch("http://192.168.2.20:5000/chat/del", {
+        "body": JSON.stringify({ "chat_id": chatRole.chat_id }),
+        "method": "POST"
+      });
+  }
+
   async doChat () {
 
-    // let nowTime = new Date().getTime();
-    // if (nowTime > new Date(chatRole.exp).getTime() || chatRole.isUsing === false) {
-    //   this.finish('doChat', true);
-    //   this.cancel(chatRoleName);
-    //   this.reply('服务结束了, 亲, 下次见~');
-    // }
-    if (this.e.atme) {
+    if (this.e.atme || this.e.message_type === "private") {
       let chatRoleName = await redis.get(String(this.e.group_id) + '人格');
       let chatRoleString = await redis.get(chatRoleName);
       let chatRole = JSON.parse(chatRoleString);
-      // if (!chatRole) {
-      //   this.finish('doChat', true);
-      //   this.reply('服务结束了, 亲, 下次见~~');
-      // }
       console.log('尝试chatgpt回答');
       let messageText = '';
       for (let val of this.e.message) {
@@ -145,5 +143,6 @@ export class ChatGPT extends plugin {
       console.log(resJson);
       this.reply(resJson.content, true);
     }
+    return false;
   }
 }
